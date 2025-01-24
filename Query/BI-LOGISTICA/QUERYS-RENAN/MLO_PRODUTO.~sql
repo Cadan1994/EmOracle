@@ -1,0 +1,13 @@
+SELECT 
+    nroempresa,
+		seqproduto,
+		desccompleta,
+		padraoembcompra,
+		padraoembvenda,
+		statuscompra,
+		statusvenda,
+		NVL(dtahoralteracao,dtainclusao) 
+FROM implantacao.mlo_produto a
+WHERE 1=1
+AND nroempresa = 1	
+ORDER BY seqproduto ASC

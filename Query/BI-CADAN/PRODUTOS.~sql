@@ -1,0 +1,44 @@
+select
+    a.seqfamilia,
+		nvl(b.seqmarca,0) seqmarca,
+		d.seqsecao,
+		e.seqcategoria,
+		f.seqsubcategoria,
+		c.seqfornecedor,
+		a.seqproduto,
+		regexp_replace(a.desccompleta, '''', '') desccompleta,
+		regexp_replace(a.descreduzida, '''', '') descreduzida,
+		nvl(regexp_replace(a.complemento, '''', ''),'NAO INFORMADO') complemento,
+		a.indprocfabricacao,
+		to_char(a.dtahorinclusao,'dd/mm/yyyy') dtahorinclusao,
+		nvl(to_char(a.dtahoralteracao,'dd/mm/yyyy'),to_char(a.dtahorinclusao,'dd/mm/yyyy')) dtahoralteracao 
+from implantacao.map_produto a
+inner join implantacao.map_familia b 
+on b.seqfamilia = a.seqfamilia
+inner join implantacao.map_famfornec c 
+on c.seqfamilia = b.seqfamilia and c.principal = 'S'
+left join (select t13.seqproduto, t15.seqcategoria AS seqsecao
+           from  implantacao.map_produto t13
+           inner join implantacao.map_famdivisao t14 on t13.seqfamilia = t14.seqfamilia 
+           inner join implantacao.map_categoria t15 on t15.nrodivisao = t14.nrodivisao AND t15.nivelhierarquia = 1 AND t15.statuscategor = 'A'
+           inner join implantacao.map_famdivcateg t16 on t16.seqfamilia = t13.seqfamilia AND  t16.seqcategoria = t15.seqcategoria AND t16.status = 'A') d 
+on d.seqproduto = a.seqproduto
+-- PEGA O CÓDIGO DA CATEGORIA
+left join (select a.seqproduto, c.seqcategoria AS seqcategoria
+           from  implantacao.map_produto a
+           inner join implantacao.map_famdivisao b on b.seqfamilia = a.seqfamilia 
+           inner join implantacao.map_categoria c on c.nrodivisao = b.nrodivisao AND c.nivelhierarquia = 2 AND c.statuscategor = 'A'
+           inner join implantacao.map_famdivcateg d on d.seqfamilia = a.seqfamilia AND  d.seqcategoria = c.seqcategoria AND d.status = 'A') e 
+on e.seqproduto = a.seqproduto
+-- PEGA O CÓDIGO DA SUBCATEGORIA
+left join (select t21.seqproduto,t23.seqcategoria AS seqsubcategoria
+           from  implantacao.map_produto t21
+           inner join implantacao.map_famdivisao t22 ON t21.seqfamilia = t22.seqfamilia 
+           inner join implantacao.map_categoria t23 ON t23.nrodivisao = t22.nrodivisao AND t23.nivelhierarquia = 3 AND t23.statuscategor = 'A'
+           inner join implantacao.map_famdivcateg t24 ON t24.seqfamilia = t21.seqfamilia AND  t24.seqcategoria = t23.seqcategoria AND t24.status = 'A'
+           AND t21.desccompleta NOT LIKE 'ZZ%') f 
+ON f.seqproduto = a.seqproduto
+order by a.seqproduto asc 
+
+
+

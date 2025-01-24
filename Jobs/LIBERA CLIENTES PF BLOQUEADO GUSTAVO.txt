@@ -1,0 +1,32 @@
+--libera cliente pf bloqueado por limite de credito
+begin
+   
+for t in (select
+case
+  when to_char(a.dtabloqueio,'MMRRRR') <= to_char(sysdate,'MMRRRR') and a.tipoderegra = 'bloqueio' then
+  'block'
+         else
+          'executa'
+      end AS TIOP , a.* , b.nroempresa from CADAN_CLIENTE_PF_SALDO a
+      join mrl_cliente b on (b.seqpessoa = a.seqpessoa)) loop
+  
+  IF t.TIOP = 'executa' THEN
+  
+  IMPLANTACAO.PKG_FINANCEIRO.FIP_GERAOCORRENCIA('999',
+                                                    'E',
+                                                    t.seqpessoa,
+                                                    'LIMITE DE VENDA PESSOA LIBERADO',
+                                                    sysdate,
+                                                    99,
+                                                    t.nroempresa,
+                                                    'AUTOBOT',
+                                                    '0',
+                                                    'S',
+                                                    Null);
+END if;
+
+end loop;
+
+commit;
+
+end;

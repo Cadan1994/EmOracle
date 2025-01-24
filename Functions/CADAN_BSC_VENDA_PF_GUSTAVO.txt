@@ -1,0 +1,80 @@
+create or replace function implantacao.cadan_bsc_venda_pf(vrSeqpessoa in ge_pessoa.seqpessoa%type)
+
+return number
+is
+
+result number;
+
+recCliente integer;
+valorVenda number;
+
+begin
+
+select
+
+
+       sum(sum((round(V.VLRITEM, 2) - VLRICMSST - VLRFCPST) -
+           (round(V.VLRDEVOLITEM, 2) - (0 + VLRDEVOLICMSST + DVLRFCPST))))
+
+into
+   valorVenda
+
+  from MAXV_ABCDISTRIBBASE      V,
+       MRL_CUSTODIAFAM          Y,
+       MAP_PRODUTO              A,
+       MAP_PRODUTO              PB,
+       MAP_FAMDIVISAO           D,
+       MAP_FAMEMBALAGEM         K,
+       MAX_EMPRESA              E,
+       MAX_DIVISAO              DV,
+       MAP_PRODACRESCCUSTORELAC PR,
+       GE_PESSOA                P,
+       MAD_SEGMENTO             SEG,
+       MAD_FAMSEGMENTO          FAMSEG,
+       MRLV_DESCONTOREGRA       RE
+ where D.SEQFAMILIA = A.SEQFAMILIA
+   and D.NRODIVISAO = V.NRODIVISAO
+   and V.SEQPRODUTO = A.SEQPRODUTO
+   and V.SEQPRODUTOCUSTO = PB.SEQPRODUTO
+   and V.NROSEGMENTO in (1, 6, 5, 4, 9, 7, 10, 8, 3)
+   and V.NRODIVISAO = D.NRODIVISAO
+   and E.NROEMPRESA = V.NROEMPRESA
+   and E.NRODIVISAO = DV.NRODIVISAO
+   AND V.SEQPRODUTO = PR.SEQPRODUTO(+)
+   AND V.DTAVDA = PR.DTAMOVIMENTACAO(+)
+   and V.DTAVDA between TO_DATE('01'||to_char(SYSDATE,'MON-RRRR')) and TO_CHAR(LAST_DAY(SYSDATE),'DD-MON-RRRR')
+   and Y.NROEMPRESA = nvl(E.NROEMPCUSTOABC, E.NROEMPRESA)
+   and Y.DTAENTRADASAIDA = V.DTAVDA
+   and K.SEQFAMILIA = A.SEQFAMILIA
+   and K.QTDEMBALAGEM = K.QTDEMBALAGEM
+   AND V.SEQPRODUTO = RE.SEQPRODUTO(+)
+   AND V.DTAVDA = RE.DATAFATURAMENTO(+)
+   AND V.NRODOCTO = RE.NUMERODF(+)
+   AND V.SERIEDOCTO = RE.SERIEDF(+)
+   AND V.NROEMPRESA = RE.NROEMPRESA(+)
+   and Y.SEQFAMILIA = PB.SEQFAMILIA
+   and SEG.NROSEGMENTO = V.NROSEGMENTO
+   and SEG.NRODIVISAO = V.NRODIVISAO
+   and FAMSEG.SEQFAMILIA = A.SEQFAMILIA
+   and SEG.NROSEGMENTO = FAMSEG.NROSEGMENTO
+   and K.QTDEMBALAGEM = FAMSEG.PADRAOEMBVENDA
+   and V.SEQPESSOA = P.SEQPESSOA
+   and v.codgeraloper in (307)
+   and v.seqpessoa = vrSeqpessoa
+
+   and DECODE(V.TIPTABELA, 'S', V.CGOACMCOMPRAVENDA, V.ACMCOMPRAVENDA) in
+       ('S', 'I')
+   and D.SEQCOMPRADOR not in (8, 11)
+   and exists (select 1
+          from MAP_FAMFORNEC
+         where SEQFORNECEDOR = 124
+           and PRINCIPAL = 'S'
+           and MAP_FAMFORNEC.SEQFAMILIA = A.SEQFAMILIA)
+   and V.SEQPESSOA NOT IN (22401, 1)
+
+ group by
+       recCliente;
+
+       result := valorVenda;
+       return(result);
+end;

@@ -1,0 +1,13 @@
+SELECT
+    DISTINCT
+		a.nroempresa,
+    a.seqproduto,
+		SUM(b.qtdpalete/b.qtdembalagem) AS qtdpalete,
+		b.dtavalidade
+FROM implantacao.mlo_endereco a
+INNER JOIN implantacao.mlo_paleteqtde b ON b.seqpaleterf = a.seqpaleterf
+WHERE 1=1
+--AND nroempresa = 1
+--AND a.seqproduto = 462
+GROUP BY a.nroempresa, a.seqproduto, b.dtavalidade
+ORDER BY 3 ASC

@@ -1,0 +1,51 @@
+﻿/*
++-----------------------------------------------------------------------------------------------------------------------+
+ PROCEDURE DE INTEGRAÇÃO DO ECOMMERCE
+ Data alteração............: 07/02/2022
+ Alterado por..............: HILSON SANTOS
+ Objetivo..................: ALTERAR O PARÂMETRO "INTEGRAÇÃO PARA O ECOMMECER" NA TABELA MAP_PRODUTO, QUANDO O SOMATÓRIO
+                             DO ESTOQUE DA MATRIZ E FILIAIS FOR IGUAL A  ZERO E MAIS DE TRINTA DIAS CADASTRADO O PARÂME-
+                             TRO RECEBE "N" SE NÃO RECEBE "S".
+ Data alteração............: 24/10/2022
+ Alterado por..............: HILSON SANTOS
+ Objetivo..................: ALTERAR O PARÂMETRO "INTEGRAÇÃO PARA O ECOMMECER" TIRANDO TODOS OS PRODUTOS QUE COMEÇA  COM
+                             ZZ
++-----------------------------------------------------------------------------------------------------------------------+
+*/
+CREATE OR REPLACE PROCEDURE IMPLANTACAO.CADAN_INTEGRACAOECOMMECE
+IS
+BEGIN
+     FOR T IN 
+         (
+         SELECT 
+         A.SEQPRODUTO SEQPRODUTO,
+         CASE
+             WHEN (TRUNC(SYSDATE - B.DTAHORINCLUSAO+1) > 30 AND SUM(ROUND((ESTQDEPOSITO-QTDRESERVADAVDA) / C.PADRAOEMBVENDA,6))=0)
+             THEN 'ALTERAR'
+         END
+         RETURN, 
+         SUM(ROUND(ESTQDEPOSITO / C.PADRAOEMBVENDA,6)) ESTQDEPOSITO,
+         SUM(ROUND(QTDRESERVADAVDA / C.PADRAOEMBVENDA,6)) QTDRESERVADAVDA,
+         SUM(ROUND((ESTQDEPOSITO-QTDRESERVADAVDA) / C.PADRAOEMBVENDA,6)) ESTQDISPONIVEL
+         FROM   IMPLANTACAO.MRL_PRODUTOEMPRESA A
+         INNER  JOIN IMPLANTACAO.MAP_PRODUTO B ON B.SEQPRODUTO = A.SEQPRODUTO AND B.DESCCOMPLETA NOT LIKE 'ZZ%'
+         INNER  JOIN IMPLANTACAO.MAD_FAMSEGMENTO C ON C.SEQFAMILIA = B.SEQFAMILIA AND NROSEGMENTO = 1
+         WHERE  1=1
+         AND    A.STATUSCOMPRA = 'A'
+         GROUP  BY A.SEQPRODUTO,B.DTAHORINCLUSAO
+         ORDER  BY A.SEQPRODUTO ASC
+         ) 
+         LOOP
+         
+         IF T.RETURN = 'ALTERAR' THEN
+            UPDATE IMPLANTACAO.MAP_PRODUTO
+            SET    INDINTEGRAECOMMERCE = 'N' 
+            WHERE  SEQPRODUTO = (SELECT T.SEQPRODUTO FROM DUAL);
+         ELSE
+            UPDATE IMPLANTACAO.MAP_PRODUTO
+            SET    INDINTEGRAECOMMERCE = 'S' 
+            WHERE  SEQPRODUTO = (SELECT T.SEQPRODUTO FROM DUAL);
+         END IF;
+     END LOOP;
+     COMMIT;
+END;

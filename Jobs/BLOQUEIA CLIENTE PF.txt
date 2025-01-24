@@ -1,0 +1,90 @@
+/*
++-----------------------------------------------------------------------------------------------------------------------+
+ JOB BLOQUEA CLIENTE PF
+ Data alteração............: 08/09/2022
+ Alterado por..............: HILSON SANTOS
+
+ Nova alteração
+ Data alteração............: 13/09/2022
+ Alterado por..............: HILSON SANTOS
+ 
+ Nova alteração
+ Data alteração............: 15/09/2022
+ Alterado por..............: HILSON SANTOS
++-----------------------------------------------------------------------------------------------------------------------+
+*/
+DECLARE
+       VLRLIMITE DECIMAL:= 4750.00;
+       MESANOATUAL CHAR(6):= TO_CHAR(SYSDATE,'MMYYYY');
+BEGIN
+     FOR T IN
+         (
+         SELECT
+               C.NROEMPRESA                        EMPRESA,
+               A.SEQPESSOA                         PESSOA,
+               CASE
+               WHEN NVL(IMPLANTACAO.CADAN_BSC_VENDA_PF(A.SEQPESSOA),0) >= 4750.00
+               THEN 'X'
+               END                                 VERIFICADOR,
+               B.SITUACAOCREDITO                   SITUACAO,
+               TO_CHAR(MAX(TO_DATE(D.DTABLOQUEIO,'DD/MM/YYY')),'MMYYYY') MESANO,
+               NVL(IMPLANTACAO.CADAN_BSC_VENDA_PF(A.SEQPESSOA),0) SOMATOTAL
+         FROM   IMPLANTACAO.GE_PESSOA A 
+         INNER  JOIN IMPLANTACAO.GE_PESSOACADASTRO B ON B.SEQPESSOA = A.SEQPESSOA AND B.SITUACAOCREDITO != 'S'
+         INNER  JOIN IMPLANTACAO.MRL_CLIENTE C ON C.SEQPESSOA = B.SEQPESSOA AND C.STATUSCLIENTE = 'A'
+         INNER  JOIN IMPLANTACAO.CADAN_CLIENTE_PF_SALDO D ON D.SEQPESSOA = C.SEQPESSOA
+         WHERE  1=1
+         AND    A.FISICAJURIDICA = 'F'
+         AND    (SELECT COUNT(*) FROM IMPLANTACAO.CADAN_CLIENTE_PF_SALDO WHERE SEQPESSOA = A.SEQPESSOA) > 0
+         GROUP  BY A.SEQPESSOA,B.SITUACAOCREDITO,C.NROEMPRESA
+         ORDER  BY 2 DESC
+         ) 
+         LOOP
+         
+         IF (T.VERIFICADOR = 'X' AND T.MESANO <> MESANOATUAL) OR (T.VERIFICADOR = 'X' AND T.SITUACAO = 'L') THEN
+         
+            UPDATE IMPLANTACAO.GE_PESSOACADASTRO 
+            SET    SITUACAOCREDITO = 'B' 
+            WHERE  SEQPESSOA = (SELECT T.PESSOA FROM DUAL);
+            
+            INSERT INTO IMPLANTACAO.CADAN_CLIENTE_PF_SALDO
+            SELECT 
+                   T.PESSOA,
+                   T.SOMATOTAL,
+                   'BLOQUEADO',
+                   SYSDATE 
+            FROM DUAL;
+            
+            IMPLANTACAO.PKG_FINANCEIRO.FIP_GERAOCORRENCIA
+            ('950','E',T.PESSOA,'LIMITE DE VENDA PESSOA EXCEDIDO',SYSDATE,-99,T.EMPRESA,'AUTOBOT','0','S',Null);
+         END IF;
+     END LOOP;
+     COMMIT;
+END;
+
+
+/*
+Alterado em 15/09/2022 por Hilson Santos
+SELECT 
+      DISTINCT
+      A.SEQPESSOA                                                                             PESSOA,
+      NVL(IMPLANTACAO.CADAN_BSC_VENDA_PF(A.SEQPESSOA),0)                                      SOMATOTAL,
+      CASE
+      WHEN NVL(IMPLANTACAO.CADAN_BSC_VENDA_PF(A.SEQPESSOA),0) >= VLRLIMITE
+      THEN 'X'
+      END                                                                                     VERIFICADOR,
+      (SELECT COUNT(*) FROM IMPLANTACAO.CADAN_CLIENTE_PF_SALDO WHERE SEQPESSOA = A.SEQPESSOA) QUANTIDADE,
+      TO_CHAR(DTABLOQUEIO,'MMYYYY')                                                           MESANO,
+      B.NROEMPRESA                                                                            EMPRESA
+FROM   IMPLANTACAO.GE_PESSOA A 
+INNER  JOIN IMPLANTACAO.MRL_CLIENTE B ON B.SEQPESSOA = A.SEQPESSOA AND B.STATUSCLIENTE = 'A'
+LEFT   JOIN IMPLANTACAO.CADAN_CLIENTE_PF_SALDO C ON C.SEQPESSOA = A.SEQPESSOA
+WHERE  1=1
+AND    A.FISICAJURIDICA = 'F'
+AND    NVL(IMPLANTACAO.CADAN_BSC_VENDA_PF(A.SEQPESSOA),0) > 0
+ORDER  BY 2 DESC
+
+
+Alterado em 13/09/2022 por Hilson Santos
+IF (T.VERIFICADOR = 'X' AND T.QUANTIDADE = 0) OR T.MESANO <> MESANOATUAL THEN
+*/

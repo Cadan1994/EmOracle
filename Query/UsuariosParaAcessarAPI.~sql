@@ -1,0 +1,15 @@
+SELECT 												 
+		a.sequsuario AS userid,													 
+    a.nroempresa AS userempresa,
+		a.sequsuario AS userid,
+		UPPER(a.codusuario) AS userlogin, 
+		UPPER(a.nome) AS usernome,
+		implantacao.criptografar_senha_md5('cadan@2024') AS usersenha,
+		b.userdtaimportacao
+FROM implantacao.ge_usuario a
+LEFT JOIN implantacao.cadan_pixusuarios b ON b.userid = a.sequsuario
+WHERE 1=1
+AND a.nroempresa IN (1, 2)	
+AND a.nivel IN (3, 8)
+AND (a.codusuario NOT LIKE ('C5%') AND(a.codusuario NOT LIKE ('DEVIT%'))) 
+AND b.userdtaimportacao IS NULL

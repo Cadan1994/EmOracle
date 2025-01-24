@@ -1,0 +1,48 @@
+SELECT
+		a.nroempresa,	
+		a.seqproduto,
+    ROUND(a.estqdeposito/b.qtdembalagem,0)
+		AS estoquegeralqtd,	
+		ROUND((a.estqdeposito/b.qtdembalagem)*b.precovenda,2)
+		AS estoquegeralvlr,
+		ROUND((a.estqdeposito-a.qtdreservadavda)/b.qtdembalagem,0)
+		AS estoqueatualqtd,	
+		ROUND(((a.estqdeposito-a.qtdreservadavda)/b.qtdembalagem)*b.precovenda,2)
+		AS estoqueatualvlr,
+		ROUND(a.qtdreservadavda/b.qtdembalagem,0)
+		AS estoquereservadoqtd,	
+		ROUND((a.qtdreservadavda/b.qtdembalagem)*b.precovenda,2)
+		AS estoquereservadovlr,
+		b.precovenda,
+		b.qtdembalagem
+FROM implantacao.mrl_produtoempresa a
+LEFT JOIN (SELECT
+     					 DISTINCT
+							 a.nroempresa,
+    					 a.seqproduto,
+							 ROUND(
+							 CASE
+							 WHEN a.precogerpromoc = 0
+							 THEN a.precogernormal
+							 ELSE a.precogerpromoc
+							 END,2)
+							 AS precovenda,
+							 b.qtdembalagem
+					 FROM implantacao.mrl_prodempseg a
+					 INNER JOIN (SELECT
+    			 			 			     DISTINCT 
+    											 a.seqproduto,
+													 ROUND(a.qtdembalagem,0) 
+													 AS qtdembalagem 
+												FROM implantacao.map_prodcodigo a 
+												WHERE 1=1
+												AND a.indutilvenda = 'S' 
+												AND a.tipcodigo IN ('E','D')) b 
+					 ON b.seqproduto = a.seqproduto
+					 WHERE 1 = 1
+					 AND a.nrosegmento IN (1, 3, 4, 5, 6, 7, 8, 9, 10)
+					 AND a.statusvenda = 'A') b 
+ON b.nroempresa = a.nroempresa AND b.seqproduto = a.seqproduto 
+WHERE 1=1
+AND (a.estqdeposito+a.qtdreservadavda+a.estqloja)	!= 0	
+ORDER BY 2 ASC, 1 ASC

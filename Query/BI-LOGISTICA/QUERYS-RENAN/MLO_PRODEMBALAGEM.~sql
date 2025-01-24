@@ -1,0 +1,5 @@
+SELECT nroempresa,seqproduto,embalagem,qtdembalagem 
+FROM implantacao.mlo_prodembalagem
+WHERE 1=1	
+AND nroempresa = 1
+ORDER BY seqproduto ASC

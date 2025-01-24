@@ -1,0 +1,234 @@
+CREATE OR REPLACE VIEW POLIBRAS.VWP_PRODUTO AS
+SELECT
+    DISTINCT t.U_PKEY,
+	  t.U_ORGVENDA,
+	  t.S_CODPRODUTO,
+	  t.D_ESTOQUE,
+	  nvl(t.D_MULTIPLO_VENDA, 1)
+		AS D_MULTIPLO_VENDA,
+	  t.D_UNIDADE,
+	  t.D_UNIDADE_MACRO,
+	  t.S_DESCRICAO,
+	  t.S_DESCRICAO_UNIDADE,
+	  t.S_DESCRICAO_UNIDADE_MACRO,
+	  t.D_PESO,
+	  t.S_EAN,
+	  t.S_IMAGEM,
+	  t.S_DESCRITIVO,
+	  t.S_XILINCADO,
+	  t.U_STATUS,
+	  t.D_PERCBONIFICVENDA,
+	  t.D_GIRODIARIO,
+		NVL(TRIM(a.jsondata), '{"produto_base":"N"}')
+		AS j_data
+FROM (SELECT
+          DISTINCT
+	    		0 U_PKEY,
+	    		E.NROEMPRESA U_ORGVENDA,
+	    		A.SEQPRODUTO || '.' || F.qtdEMBALAGEM S_CODPRODUTO,
+	    		CASE
+	       	WHEN ((E.ESTQLOJA + E.ESTQDEPOSITO) - ABS (E.QTDRESERVADAVDA) - E.QTDRESERVADAFIXA) / F.QTDEMBALAGEM > 0
+	       	THEN ((E.ESTQLOJA + E.ESTQDEPOSITO) - ABS (E.QTDRESERVADAVDA) - E.QTDRESERVADAFIXA) / F.QTDEMBALAGEM
+	       	ELSE 0
+	    		END D_ESTOQUE,
+	    		NVL(implantacao.cadan_fpegaMultiplo(b.seqfamilia), 1)
+					AS D_MULTIPLO_VENDA,
+	    		TRUNC(F.QTDEMBALAGEM) D_UNIDADE,
+	    		0 D_UNIDADE_MACRO,
+	    		A.DESCCOMPLETA S_DESCRICAO,
+	    		F.EMBALAGEM || '-' || F.QTDEMBALAGEM S_DESCRICAO_UNIDADE,
+	    		'' S_DESCRICAO_UNIDADE_MACRO,
+	    		F.PESOBRUTO D_PESO,
+	    		decode(L.TIPCODIGO, 'D', 'DUN'||'-'||L.CODACESSO,'E',  'EAN'||'-'||L.CODACESSO,'B' , 'B'||'-'||L.CODACESSO ) S_EAN,
+	    		A.SEQPRODUTO S_IMAGEM,
+	    		'' S_DESCRITIVO,
+	    		'' S_XILINCADO,
+	    		CASE
+	       	WHEN (est.CODIGONIVEL = 0) then 256
+	       	WHEN (est.CODIGONIVEL = 1) then 768
+	       	ELSE 0
+	    		END U_STATUS,
+	    		0 AS D_PERCBONIFICVENDA,
+	    		0 AS D_GIRODIARIO
+      FROM implantacao.MAP_PRODUTO A,
+	         implantacao.MAP_FAMILIA B,
+	    		 implantacao.MRL_PRODUTOEMPRESA E,
+	    		 implantacao.MAP_FAMEMBALAGEM F,
+	    		 implantacao.MAP_FAMDIVISAO X,
+	    		 implantacao.MAD_LISTAITEM W,
+	    		 implantacao.MAD_FAMSEGMENTO Z,
+	    		 implantacao.MRL_PRODEMPSEG ZZ,
+	    		 implantacao.MAP_PRODCODIGO L,
+	    		 implantacao.vafvac_nivelestoque est
+    	WHERE	A.SEQPRODUTO = E.SEQPRODUTO
+	    AND A.SEQPRODUTO = ZZ.SEQPRODUTO
+	    AND L.SEQPRODUTO = ZZ.SEQPRODUTO
+	    AND A.SEQFAMILIA = F.SEQFAMILIA
+	    AND A.SEQFAMILIA = W.SEQFAMILIA
+	    AND A.SEQFAMILIA = B.SEQFAMILIA
+	    AND B.SEQFAMILIA = L.SEQFAMILIA
+	    AND A.SEQFAMILIA = X.SEQFAMILIA
+	    AND A.SEQFAMILIA = Z.SEQFAMILIA
+	    AND E.NROEMPRESA = ZZ.NROEMPRESA
+	    and A.SEQPRODUTO = est.CODIGOPRODUTO
+	    and E.NROEMPRESA = est.CODIGOUNIDFAT
+	    AND E.NROEMPRESA IN (1,2)
+			AND F.QTDEMBALAGEM = Z.PADRAOEMBVENDA
+	    AND F.QTDEMBALAGEM = ZZ.QTDEMBALAGEM
+      AND F.QTDEMBALAGEM = L.QTDEMBALAGEM
+	    AND L.QTDEMBALAGEM = ZZ.QTDEMBALAGEM
+      AND L.QTDEMBALAGEM = Z.PADRAOEMBVENDA
+			AND a.DESCCOMPLETA not like 'ZZ %'
+			AND X.NRODIVISAO IN (1)
+	    AND Z.NROSEGMENTO = ZZ.NROSEGMENTO
+	    AND E.INDBLOQAFV = 'N'
+	    AND Z.STATUS = 'A'
+	    AND f.status = 'A'
+      AND zz.statusvenda = 'A'
+      AND l.indutilvenda = 'S'
+	    AND ZZ.PRECOBASENORMAL > 0
+	    AND L.TIPCODIGO in ('D','E')
+     	AND Z.VLRNULTIPLOVDA is not null
+
+			UNION all
+
+   		SELECT
+			    DISTINCT
+	    		0 U_PKEY,
+	    		E.NROEMPRESA U_ORGVENDA,
+	    		A.SEQPRODUTO || '.' || F.qtdEMBALAGEM S_CODPRODUTO,
+	    		CASE
+	       	WHEN ((E.ESTQLOJA + E.ESTQDEPOSITO) - ABS (E.QTDRESERVADAVDA) - E.QTDRESERVADAFIXA) / F.QTDEMBALAGEM > 0
+	       	THEN ((E.ESTQLOJA + E.ESTQDEPOSITO) - ABS (E.QTDRESERVADAVDA) - E.QTDRESERVADAFIXA) / F.QTDEMBALAGEM
+	       	ELSE 0
+	    		END D_ESTOQUE,
+	    		NVL(implantacao.cadan_fpegaMultiplo(b.seqfamilia), 1) as
+	       	D_MULTIPLO_VENDA,
+	    		TRUNC (F.QTDEMBALAGEM) D_UNIDADE,
+	    		0 D_UNIDADE_MACRO,
+	    		A.DESCCOMPLETA S_DESCRICAO,
+	    		F.EMBALAGEM || '-' || F.QTDEMBALAGEM S_DESCRICAO_UNIDADE,
+	    		'' S_DESCRICAO_UNIDADE_MACRO,
+	    		F.PESOBRUTO D_PESO,
+					decode(L.TIPCODIGO, 'D', 'DUN'||'-'||L.CODACESSO,'E',  'EAN'||'-'||L.CODACESSO,'B' , 'B'||'-'||L.CODACESSO ) S_EAN,
+					A.SEQPRODUTO S_IMAGEM,
+	    		'' S_DESCRITIVO,
+	    		'' S_XILINCADO,
+	    		CASE
+	       	WHEN (est.CODIGONIVEL = 0) then 256
+	       	when (est.CODIGONIVEL = 1) then 768
+	       	else 0
+	    		END U_STATUS,
+	    		0 AS D_PERCBONIFICVENDA,
+	    		0 AS D_GIRODIARIO
+     	FROM implantacao.MAP_PRODUTO A,
+	    		 implantacao.MAP_FAMILIA B,
+	    		 implantacao.MRL_PRODUTOEMPRESA E,
+	    		 implantacao.MAP_FAMEMBALAGEM F,
+	    		 implantacao.MAP_FAMDIVISAO X,
+	    		 implantacao.MAD_LISTAITEM W,
+	    		 implantacao.MAD_FAMSEGMENTO Z,
+	    		 implantacao.MRL_PRODEMPSEG ZZ,
+	    		 implantacao.MAP_PRODCODIGO L,
+	    		 implantacao.vafvac_nivelestoque est
+    	WHERE	A.SEQPRODUTO = E.SEQPRODUTO
+	    AND A.SEQPRODUTO = ZZ.SEQPRODUTO
+	    AND L.SEQPRODUTO = ZZ.SEQPRODUTO
+	    and A.SEQPRODUTO = est.CODIGOPRODUTO
+	    and E.NROEMPRESA = est.CODIGOUNIDFAT
+	    AND A.SEQFAMILIA = F.SEQFAMILIA
+	    AND A.SEQFAMILIA = W.SEQFAMILIA
+	    AND A.SEQFAMILIA = B.SEQFAMILIA
+	    AND B.SEQFAMILIA = L.SEQFAMILIA
+	    AND A.SEQFAMILIA = X.SEQFAMILIA
+	    AND A.SEQFAMILIA = Z.SEQFAMILIA
+	    AND E.NROEMPRESA = ZZ.NROEMPRESA
+	    AND E.NROEMPRESA IN (1,2)
+	    AND F.QTDEMBALAGEM = Z.PADRAOEMBVENDA
+	    AND F.QTDEMBALAGEM = ZZ.QTDEMBALAGEM
+      AND F.QTDEMBALAGEM = L.QTDEMBALAGEM
+	    AND L.QTDEMBALAGEM = ZZ.QTDEMBALAGEM
+      AND L.QTDEMBALAGEM = Z.PADRAOEMBVENDA
+      AND a.DESCCOMPLETA not like 'ZZ %'
+	    AND Z.NROSEGMENTO = ZZ.NROSEGMENTO
+    	AND L.TIPCODIGO in ('D','E','B')
+	    AND Z.STATUS = 'A'
+	    AND f.status = 'A'
+      AND l.indutilvenda = 'S'
+      AND zz.statusvenda = 'A'
+	    AND ZZ.PRECOBASENORMAL > 0
+
+      UNION ALL
+
+   		SELECT
+			    DISTINCT
+      		0 U_PKEY,
+      		1 as U_ORGVENDA,
+      		'27611.1' as  S_CODPRODUTO,
+      		1 as D_ESTOQUE,
+      		1 as D_MULTIPLO_VENDA,
+      		1 D_UNIDADE,
+      		0 D_UNIDADE_MACRO,
+      		'COMBO YPE' as S_DESCRICAO,
+      		'UN-1' as  S_DESCRICAO_UNIDADE,
+      		'' S_DESCRICAO_UNIDADE_MACRO,
+      		ROUND(1,3) as D_PESO,
+    			'B-27611' as S_EAN,
+    			27611 as S_IMAGEM,
+      		'' as S_DESCRITIVO,
+      		'' as S_XILINCADO,
+      		768 as U_STATUS,
+      		0 AS D_PERCBONIFICVENDA,
+      		0 AS D_GIRODIARIO
+     	FROM DUAL
+
+     	UNION ALL
+
+      SELECT
+			    DISTINCT
+      		0 U_PKEY,
+      		1 as U_ORGVENDA,
+      		'29738.1' as  S_CODPRODUTO,
+      		1 as D_ESTOQUE,
+      		1 as D_MULTIPLO_VENDA,
+      		1 D_UNIDADE,
+      		0 D_UNIDADE_MACRO,
+      		'COMBO PERNOD' as S_DESCRICAO,
+      		'UN-1' as  S_DESCRICAO_UNIDADE,
+      		'' S_DESCRICAO_UNIDADE_MACRO,
+      		ROUND(1,3) as D_PESO,
+    			'B-29738' as S_EAN,
+    			29738 as S_IMAGEM,
+      		'' as S_DESCRITIVO,
+      		'' as S_XILINCADO,
+      		768 as U_STATUS,
+      		0 AS D_PERCBONIFICVENDA,
+      		0 AS D_GIRODIARIO
+      FROM DUAL
+
+     	UNION ALL
+
+     	SELECT
+    			DISTINCT
+          0 U_PKEY,
+          2 as U_ORGVENDA,
+          '27611.1' as  S_CODPRODUTO,
+          1 as D_ESTOQUE,
+          1 as D_MULTIPLO_VENDA,
+          1 D_UNIDADE,
+          0 D_UNIDADE_MACRO,
+          'COMBO YPE' as S_DESCRICAO,
+          'UN-1' as  S_DESCRICAO_UNIDADE,
+          '' S_DESCRICAO_UNIDADE_MACRO,
+          round(1,3) as D_PESO,
+        	'B-27611' as S_EAN,
+        	27611 as S_IMAGEM,
+          '' as S_DESCRITIVO,
+          '' as S_XILINCADO,
+          768 as U_STATUS,
+          0 AS D_PERCBONIFICVENDA,
+          0 AS D_GIRODIARIO
+     	FROM DUAL
+      ) t
+LEFT JOIN implantacao.cadan_produtobase a ON TRIM(a.seqproduto) = t.S_CODPRODUTO
+

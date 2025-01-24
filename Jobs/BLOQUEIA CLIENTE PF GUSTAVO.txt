@@ -1,0 +1,45 @@
+-- Bloqueia Cliente PF
+BEGIN
+
+  for t in (select pe.seqpessoa,
+                   nvl(IMPLANTACAO.cadan_bsc_venda_pf(pe.seqpessoa), 0) as somatotal,
+                   case
+                     when nvl(IMPLANTACAO.cadan_bsc_venda_pf(pe.seqpessoa), 0) >= 4750 then
+                      'x'
+                   end VERIFICADOR,
+                   CL.NROEMPRESA
+              from IMPLANTACAO.ge_pessoa pe
+              join IMPLANTACAO.mrl_cliente cl
+                on (cl.seqpessoa = pe.seqpessoa)
+             where pe.fisicajuridica = 'F'
+               and cl.statuscliente = 'A'
+               and pe.seqpessoa not in(select ag.seqpessoa from cadan_cliente_pf_saldo ag)
+               and  nvl(IMPLANTACAO.cadan_bsc_venda_pf(pe.seqpessoa), 0) > 0
+             order by 2 desc) loop
+
+
+    IF T.VERIFICADOR = 'x' then
+      
+  insert into cadan_cliente_pf_saldo
+        select T.seqpessoa, t.somatotal, 'bloqueio', sysdate
+          from dual;
+
+      IMPLANTACAO.PKG_FINANCEIRO.FIP_GERAOCORRENCIA('950',
+                                                    'E',
+                                                    t.seqpessoa,
+                                                    'LIMITE DE VENDA PESSOA EXCEDIDO',
+                                                    sysdate,
+                                                    -99,
+                                                    t.NROEMPRESA,
+                                                    'AUTOBOT',
+                                                    '0',
+                                                    'S',
+                                                    Null);
+
+    end if;
+
+  end loop;
+  
+  commit;
+  
+end;
