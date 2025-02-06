@@ -1,7 +1,7 @@
 CREATE OR REPLACE VIEW implantacao.Tradepro_View_GruposProdutos AS
 SELECT 
     DISTINCT
-    TO_CHAR(a.seqcategoria||'-'||c.seqfornecedor) AS	codigo,
+    TO_CHAR(a.seqcategoria||c.seqfornecedor) AS	codigo,
 		a.categoria AS descricao,
 		c.seqfornecedor AS cod_fornecedor
 FROM implantacao.map_categoria a

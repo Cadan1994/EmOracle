@@ -50,5 +50,4 @@ ORDER BY 2 ASC
 /* CRIADO POR HILSON SANTOS 19/12/2024																																												 */
 /* LOCAL: P:\EmOracle\IntegracaoTradePro-VIEW																																									 */
 /* NOME DO ARQUIVO: Tradepro_View_Clientes.sql																																								 */
-/* ALTERADO POR HILSON SANTOS EM 03/02/2025 O FORMATO DA DATA DA COLUNA ANIVERSARIO ESTAVA 'DD/MM/YYYY' PARA 'YYYY-MM-DD'			 */
 /*******************************************************************************************************************************/

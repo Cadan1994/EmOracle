@@ -1,7 +1,7 @@
 CREATE OR REPLACE VIEW implantacao.Tradepro_View_SubGruposProdutos AS
 SELECT
 		DISTINCT
-    TO_CHAR(b.seqcategoria||'-'||e.seqfornecedor) AS cod_grupo, 
+    TO_CHAR(b.seqcategoria||e.seqfornecedor) AS cod_grupo, 
     TO_CHAR(c.seqcategoria) AS codigo,
 		c.categoria AS descricao
 FROM implantacao.map_categoria a
@@ -20,6 +20,6 @@ ORDER BY 1 ASC
 /* NOME DO ARQUIVO: Tradepro_View_SubGruposProdutos.sql																																											 */	
 /* 				 																																																																	 */																																																	 
 /* ALTERADO POR HILSON SANTOS EM 28/01/2025 A LINHA 4																																												 */
-/* » Foi concatenado o seqcategoria com o seqfornecedor, solicitação da TradePRO.																														 */																																																	 
+/* » Foi concatenado o seqcategoria com o seqfornecedor, solicitação da TradePRO.																														 */																																											 */																																																		 
 /*********************************************************************************************************************************************/
 
