@@ -1,6 +1,9 @@
 SELECT
-    a.seqpessoa||' <> '||b.nomerazao AS Cliente,
 		e.descrota AS Rota,
+		d.descpraca AS Praca,
+    a.seqpessoa||' <> '||b.nomerazao AS Cliente, 
+		g.apelido,
+		a.situacaoped AS status,
 		COUNT(DISTINCT a.nropedvenda) AS quantidade,
 		SUM(((f.qtdatendida / f.qtdembalagem ) * f.vlrembinformado) + f.vlrtoticmsst) AS valor		
 FROM implantacao.mad_pedvenda a
@@ -9,9 +12,10 @@ INNER JOIN implantacao.mad_clienteend c ON c.seqpessoa = b.seqpessoa
 INNER JOIN implantacao.mad_praca d ON d.seqpraca = c.seqpraca
 INNER JOIN implantacao.mad_rota e ON e.seqrota = d.seqrota
 INNER JOIN implantacao.mad_pedvendaitem f ON f.nroempresa = a.nroempresa AND f.nropedvenda = a.nropedvenda
+INNER JOIN implantacao.mad_representante g ON g.nrorepresentante = a.nrorepresentante
 WHERE 1=1
-AND a.situacaoped = 'L'
+AND a.situacaoped IN ('A', 'L', 'S')
 AND a.indentregaretira = 'E'
-GROUP BY a.seqpessoa, b.nomerazao, e.descrota
+GROUP BY a.seqpessoa, a.nrorepresentante, a.situacaoped, b.nomerazao, d.descpraca, e.descrota, g.apelido
 HAVING SUM(((f.qtdatendida / f.qtdembalagem ) * f.vlrembinformado) + f.vlrtoticmsst) < 200
-ORDER BY 1 ASC
+ORDER BY 1 ASC, 2 ASC
